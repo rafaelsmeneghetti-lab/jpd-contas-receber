@@ -1,0 +1,2732 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JPD - Visão de Contas a Receber</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+            --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+            --table-header-bg: #1e293b;
+            --row-hover: #334155;
+            --subtotal-bg: #1e293b;
+            --accent-color: #818cf8;
+            --accent-gradient: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+            --received-color: #34d399;
+            --open-color: #fbbf24;
+            --original-color: #818cf8;
+            --font-main: 'Inter', sans-serif;
+            --font-display: 'Outfit', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            padding: 2rem 1.5rem;
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            background: var(--bg-secondary);
+            padding: 1.5rem 2rem;
+            border-radius: 1rem;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .header-title-container h1 {
+            font-family: var(--font-display);
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.25rem;
+        }
+
+        .header-title-container p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .header-title-container .update-dates {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .header-title-container .update-dates span {
+            display: inline-block;
+        }
+
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            background: var(--bg-secondary);
+            padding: 1rem 1.5rem;
+            border-radius: 1rem;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--border-color);
+            flex-wrap: wrap;
+        }
+
+        .filter-bar label {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .filter-bar input[type="date"] {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .filter-bar input[type="date"]:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        .filter-bar select {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            outline: none;
+            cursor: pointer;
+            min-width: 180px;
+        }
+
+        .filter-bar select:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        .btn-apply {
+            background: var(--accent-gradient);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-apply:hover {
+            opacity: 0.9;
+        }
+
+        .btn-clear {
+            background: var(--border-color);
+            color: var(--text-primary);
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-clear:hover {
+            background: var(--text-secondary);
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .kpi-card {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--card-accent, var(--accent-color));
+        }
+
+        .kpi-title {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .kpi-value {
+            font-family: var(--font-display);
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .kpi-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .dashboard-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        @media (min-width: 1024px) {
+            .dashboard-row {
+                grid-template-columns: 1.5fr 1fr;
+            }
+        }
+
+        .card-container {
+            background: var(--bg-secondary);
+            border-radius: 1rem;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+        }
+
+        .card-title {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chart-wrapper {
+            height: 450px;
+            position: relative;
+        }
+
+        .top10-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .top10-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .top10-item:last-child {
+            border-bottom: none;
+        }
+
+        .top10-rank {
+            width: 28px;
+            height: 28px;
+            background: var(--accent-gradient);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-right: 0.75rem;
+        }
+
+        .top10-client {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .top10-trips {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .top10-separator {
+            color: var(--text-secondary);
+            margin: 0 0.25rem;
+        }
+
+        .top10-value {
+            font-weight: 600;
+            color: var(--open-color);
+            font-family: ui-monospace, monospace;
+        }
+
+        .search-bar-container {
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+            outline: none;
+            width: 100%;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.875rem;
+        }
+
+        th {
+            background: var(--table-header-bg);
+            color: var(--text-primary);
+            font-weight: 600;
+            padding: 1rem;
+            font-family: var(--font-display);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        tr.data-row:hover {
+            background-color: var(--row-hover);
+        }
+
+        tr.client-header-row td {
+            color: white;
+            font-size: 1rem;
+            padding: 0.75rem 1rem;
+            border: none;
+        }
+
+        tr.client-subheader-row td {
+            color: white;
+            font-size: 0.75rem;
+            padding: 0.4rem 1rem;
+            border: none;
+        }
+
+        tr.subtotal-row {
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        tr.subtotal-row td {
+            color: var(--text-primary);
+            border-top: 1px solid var(--border-color);
+        }
+
+        tr.grand-total-row {
+            background: var(--accent-gradient);
+            color: #ffffff !important;
+        }
+
+        tr.grand-total-row td {
+            color: #ffffff !important;
+            font-size: 1rem;
+            padding: 1.25rem 1rem;
+        }
+
+        .font-mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .font-bold {
+            font-weight: 700;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        /* Login Screen */
+        #login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        #login-overlay.hidden {
+            display: none;
+        }
+
+        .login-box {
+            background: var(--bg-secondary);
+            padding: 2.5rem 3rem;
+            border-radius: 1rem;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--border-color);
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-box h2 {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .login-box p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .login-box input[type="password"] {
+            width: 100%;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            outline: none;
+            margin-bottom: 1rem;
+        }
+
+        .login-box input[type="password"]:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        .login-box button {
+            width: 100%;
+            background: var(--accent-gradient);
+            color: white;
+            border: none;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .login-box button:hover {
+            opacity: 0.9;
+        }
+
+        .login-error {
+            color: #ef4444;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2>JPD - Acesso Restrito</h2>
+            <p>Digite a senha para acessar o dashboard</p>
+            <input type="password" id="login-password" placeholder="Senha" onkeydown="if(event.key==='Enter')checkLogin()">
+            <button onclick="checkLogin()">Entrar</button>
+            <div class="login-error" id="login-error">Senha incorreta</div>
+        </div>
+    </div>
+
+    <div class="dashboard-container" style="display:none;" id="dashboard-content">
+
+        <header>
+            <div class="header-title-container">
+                <h1>JPD - Visão de Contas a Receber</h1>
+                <div class="update-dates">
+                    <span>Última atualização: 19/06/2026</span>
+                    <span>|</span>
+                    <span>Última atualização pagamentos: 18/06/2026</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="filter-bar">
+            <label>Período:</label>
+            <input type="date" id="date-start" value="2026-03-31">
+            <span style="color: var(--text-secondary); font-size: 0.875rem;">até</span>
+            <input type="date" id="date-end" value="2026-06-18">
+            <span style="color: var(--border-color);">|</span>
+            <label>Cliente:</label>
+            <select id="client-filter">
+                <option value="">Todos</option>
+                <option value="ALIANCA">ALIANCA</option><option value="AMORIM">AMORIM</option><option value="AUTOGRILL">AUTOGRILL</option><option value="CAPIVARA">CAPIVARA</option><option value="CLEUMA">CLEUMA</option><option value="COMVEL C LTDA">COMVEL C LTDA</option><option value="D.P. ITABERABA">D.P. ITABERABA</option><option value="D.P. ITABERABA SERRA PRETA">D.P. ITABERABA SERRA PRETA</option><option value="ELSON">ELSON</option><option value="FLOR DA CHAPADA">FLOR DA CHAPADA</option><option value="LARCO">LARCO</option><option value="LAVIO">LAVIO</option><option value="LUCIANO">LUCIANO</option><option value="MARCILIO JOSE">MARCILIO JOSE</option><option value="MARCOS TELES MARQUES DE LIMA">MARCOS TELES MARQUES DE LIMA</option><option value="NOVA BRASILIA">NOVA BRASILIA</option><option value="PATRIOTA">PATRIOTA</option><option value="PAU DE COLHER">PAU DE COLHER</option><option value="PIETRO">PIETRO</option><option value="POSTO DIAMANTINA">POSTO DIAMANTINA</option><option value="POSTO ELLO">POSTO ELLO</option><option value="POSTO PH LTDA">POSTO PH LTDA</option><option value="REDE BRAX">REDE BRAX</option><option value="REDE SERVEBEM">REDE SERVEBEM</option><option value="RODRIGO TORRES">RODRIGO TORRES</option><option value="TOTAL DISTRIBUIDORA S.A">TOTAL DISTRIBUIDORA S.A</option><option value="UESLEI">UESLEI</option><option value="VAGNER">VAGNER</option>
+            </select>
+            <button class="btn-apply" onclick="applyAllFilters()">Filtrar</button>
+            <button class="btn-clear" onclick="clearAllFilters()">Limpar</button>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card" style="--card-accent: var(--accent-color);">
+                <div>
+                    <div class="kpi-title">Total Clientes</div>
+                    <div class="kpi-value" id="kpi-clients">28</div>
+                </div>
+                <div class="kpi-desc">Clientes únicos na carteira</div>
+            </div>
+            <div class="kpi-card" style="--card-accent: var(--original-color);">
+                <div>
+                    <div class="kpi-title">Valor Total a Receber</div>
+                    <div class="kpi-value" id="kpi-original">R$ 279.702,47</div>
+                </div>
+                <div class="kpi-desc">Soma do valor em aberto das parcelas</div>
+            </div>
+        </div>
+
+        <div class="dashboard-row">
+            <div class="card-container">
+                <div class="card-title">
+                    <span>Valores por cliente em aberto</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="balanceChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card-container">
+                <div class="card-title">Mais Viagens em Aberto</div>
+                <ul class="top10-list" id="top10-list">
+                    <li class="top10-item" data-client="RODRIGO TORRES"><span class="top10-rank">1</span><span class="top10-client">RODRIGO TORRES</span><span class="top10-trips">13 viagem(ns)</span><span class="top10-separator"> - </span><span class="top10-value">R$ 19.725,52</span></li><li class="top10-item" data-client="AUTOGRILL"><span class="top10-rank">2</span><span class="top10-client">AUTOGRILL</span><span class="top10-trips">12 viagem(ns)</span><span class="top10-separator"> - </span><span class="top10-value">R$ 40.900,00</span></li><li class="top10-item" data-client="D.P. ITABERABA"><span class="top10-rank">3</span><span class="top10-client">D.P. ITABERABA</span><span class="top10-trips">11 viagem(ns)</span><span class="top10-separator"> - </span><span class="top10-value">R$ 17.520,00</span></li><li class="top10-item" data-client="CLEUMA"><span class="top10-rank">4</span><span class="top10-client">CLEUMA</span><span class="top10-trips">9 viagem(ns)</span><span class="top10-separator"> - </span><span class="top10-value">R$ 52.736,95</span></li><li class="top10-item" data-client="ELSON"><span class="top10-rank">5</span><span class="top10-client">ELSON</span><span class="top10-trips">9 viagem(ns)</span><span class="top10-separator"> - </span><span class="top10-value">R$ 22.400,00</span></li><li class="top10-item" data-client="REDE SERVEBEM"><span class="top10-rank">6</span><span class="top10-client">REDE SERVEBEM</span><span class="top10-trips">9 viagem(ns)</span><span class="top10-separator"> - </span><span class="top10-value">R$ 15.000,00</span></li><li class="top10-item" data-client="D.P. ITABERABA SERRA PRETA"><span class="top10-rank">7</span><span class="top10-client">D.P. ITABERABA SERRA PRETA</span><span class="top10-trips">8 viagem(ns)</span><span class="top10-separator"> - </span><span class="top10-value">R$ 20.650,00</span></li><li class="top10-item" data-client="PIETRO"><span class="top10-rank">8</span><span class="top10-client">PIETRO</span><span class="top10-trips">7 viagem(ns)</span><span class="top10-separator"> - </span><span class="top10-value">R$ 20.160,00</span></li><li class="top10-item" data-client="UESLEI"><span class="top10-rank">9</span><span class="top10-client">UESLEI</span><span class="top10-trips">7 viagem(ns)</span><span class="top10-separator"> - </span><span class="top10-value">R$ 9.020,00</span></li><li class="top10-item" data-client="LARCO"><span class="top10-rank">10</span><span class="top10-client">LARCO</span><span class="top10-trips">4 viagem(ns)</span><span class="top10-separator"> - </span><span class="top10-value">R$ 12.750,00</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card-container" style="margin-bottom: 2.5rem;">
+            <div class="card-title">Detalhamento das Contas a Receber</div>
+
+            <div class="search-bar-container">
+                <input type="text" id="search-input" class="search-input" placeholder="Buscar por data, viagem/CTE..." onkeyup="applyAllFilters()">
+            </div>
+
+            <div class="table-responsive">
+                <table id="receivables-table">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th class="text-center">Data</th>
+                            <th>Viagem/CTE</th>
+                            <th class="text-right">Valor Total</th>
+                            <th class="text-right">Valor Recebido</th>
+                            <th class="text-right">Valor em Aberto</th>
+                        </tr>
+                    </thead>
+                    
+            <tr class="client-header-row" data-client="ALIANCA" style="background-color: #6366f1; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: ALIANCA — 1 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="ALIANCA" style="background-color: #6366f1cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="ALIANCA">
+                    <td>ALIANCA</td>
+                    <td class="text-center">03/06/2026</td>
+                    <td>ALIANCA - CTE 8760 - COMERCIAL DE COMBUSTIVEIS ALIANCA LTDA</td>
+                    <td class="text-right font-mono" data-val="480.0">R$ 480,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="480.0">R$ 480,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #6366f115;">
+                    <td colspan="3" class="font-bold">Subtotal - ALIANCA</td>
+                    <td class="text-right font-bold font-mono" data-val="480.0">R$ 480,00</td>
+                    <td class="text-right font-bold font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-bold font-mono" data-val="480.0">R$ 480,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="AMORIM" style="background-color: #10b981; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: AMORIM — 1 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="AMORIM" style="background-color: #10b981cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="AMORIM">
+                    <td>AMORIM</td>
+                    <td class="text-center">16/06/2026</td>
+                    <td>AMORIM - CTE 8858 - AUTO POSTO AMORIM LTDA</td>
+                    <td class="text-right font-mono" data-val="800.0">R$ 800,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="800.0">R$ 800,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #10b98115;">
+                    <td colspan="3" class="font-bold">Subtotal - AMORIM</td>
+                    <td class="text-right font-bold font-mono" data-val="800.0">R$ 800,00</td>
+                    <td class="text-right font-bold font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-bold font-mono" data-val="800.0">R$ 800,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="AUTOGRILL" style="background-color: #f59e0b; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: AUTOGRILL — 12 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="AUTOGRILL" style="background-color: #f59e0bcc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="AUTOGRILL">
+                    <td>AUTOGRILL</td>
+                    <td class="text-center">18/05/2026</td>
+                    <td>AUTOGRILL - CTE 8594 - POSTO DE COMBUSTIVEIS AUTOGRILL LTDA</td>
+                    <td class="text-right font-mono" data-val="5280.0">R$ 5.280,00</td>
+                    <td class="text-right font-mono" data-val="860.0">R$ 860,00</td>
+                    <td class="text-right font-mono" data-val="4420.0">R$ 4.420,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="AUTOGRILL">
+                    <td>AUTOGRILL</td>
+                    <td class="text-center">20/05/2026</td>
+                    <td>AUTOGRILL - CTE 8625 - POSTO DE COMBUSTIVEIS AUTOGRILL LTDA</td>
+                    <td class="text-right font-mono" data-val="3600.0">R$ 3.600,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="3600.0">R$ 3.600,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="AUTOGRILL">
+                    <td>AUTOGRILL</td>
+                    <td class="text-center">22/05/2026</td>
+                    <td>AUTOGRILL - CTE 8655 - POSTO DE COMBUSTIVEIS AUTOGRILL LTDA</td>
+                    <td class="text-right font-mono" data-val="1920.0">R$ 1.920,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1920.0">R$ 1.920,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="AUTOGRILL">
+                    <td>AUTOGRILL</td>
+                    <td class="text-center">25/05/2026</td>
+                    <td>AUTOGRILL - CTE 8671 - POSTO DE COMBUSTIVEIS AUTOGRILL LTDA</td>
+                    <td class="text-right font-mono" data-val="3600.0">R$ 3.600,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="3600.0">R$ 3.600,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="AUTOGRILL">
+                    <td>AUTOGRILL</td>
+                    <td class="text-center">27/05/2026</td>
+                    <td>AUTOGRILL - CTE 8698 - POSTO DE COMBUSTIVEIS AUTOGRILL LTDA</td>
+                    <td class="text-right font-mono" data-val="4320.0">R$ 4.320,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="4320.0">R$ 4.320,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="AUTOGRILL">
+                    <td>AUTOGRILL</td>
+                    <td class="text-center">30/05/2026</td>
+                    <td>AUTOGRILL - CTE 8733 - POSTO DE COMBUSTIVEIS AUTOGRILL LTDA</td>
+                    <td class="text-right font-mono" data-val="2400.0">R$ 2.400,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="2400.0">R$ 2.400,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="AUTOGRILL">
+                    <td>AUTOGRILL</td>
+                    <td class="text-center">01/06/2026</td>
+                    <td>AUTOGRILL - CTE 8735 - POSTO DE COMBUSTIVEIS AUTOGRILL LTDA</td>
+                    <td class="text-right font-mono" data-val="3600.0">R$ 3.600,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="3600.0">R$ 3.600,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="AUTOGRILL">
+                    <td>AUTOGRILL</td>
+                    <td class="text-center">05/06/2026</td>
+                    <td>AUTOGRILL - CTE 8770 - POSTO DE COMBUSTIVEIS AUTOGRILL LTDA</td>
+                    <td class="text-right font-mono" data-val="3360.0">R$ 3.360,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="3360.0">R$ 3.360,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="AUTOGRILL">
+                    <td>AUTOGRILL</td>
+                    <td class="text-center">08/06/2026</td>
+                    <td>AUTOGRILL - CTE 8785 - POSTO DE COMBUSTIVEIS AUTOGRILL LTDA</td>
+                    <td class="text-right font-mono" data-val="3360.0">R$ 3.360,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="3360.0">R$ 3.360,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="AUTOGRILL">
+                    <td>AUTOGRILL</td>
+                    <td class="text-center">11/06/2026</td>
+                    <td>AUTOGRILL - CTE 8813 - POSTO DE COMBUSTIVEIS AUTOGRILL LTDA</td>
+                    <td class="text-right font-mono" data-val="3120.0">R$ 3.120,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="3120.0">R$ 3.120,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="AUTOGRILL">
+                    <td>AUTOGRILL</td>
+                    <td class="text-center">12/06/2026</td>
+                    <td>AUTOGRILL - CTE 8824 - POSTO DE COMBUSTIVEIS AUTOGRILL LTDA</td>
+                    <td class="text-right font-mono" data-val="2400.0">R$ 2.400,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="2400.0">R$ 2.400,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="AUTOGRILL">
+                    <td>AUTOGRILL</td>
+                    <td class="text-center">18/06/2026</td>
+                    <td>AUTOGRILL - CTE 8876 - POSTO DE COMBUSTIVEIS AUTOGRILL LTDA</td>
+                    <td class="text-right font-mono" data-val="4800.0">R$ 4.800,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="4800.0">R$ 4.800,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #f59e0b15;">
+                    <td colspan="3" class="font-bold">Subtotal - AUTOGRILL</td>
+                    <td class="text-right font-bold font-mono" data-val="41760.0">R$ 41.760,00</td>
+                    <td class="text-right font-bold font-mono" data-val="860.0">R$ 860,00</td>
+                    <td class="text-right font-bold font-mono" data-val="40900.0">R$ 40.900,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="CAPIVARA" style="background-color: #ef4444; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: CAPIVARA — 2 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="CAPIVARA" style="background-color: #ef4444cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="CAPIVARA">
+                    <td>CAPIVARA</td>
+                    <td class="text-center">18/06/2026</td>
+                    <td>CAPIVARA - CTE 8883 - AUTO POSTO CAPIVARA LTDA - 17.795.710/0001-58</td>
+                    <td class="text-right font-mono" data-val="1840.0">R$ 1.840,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1840.0">R$ 1.840,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="CAPIVARA">
+                    <td>CAPIVARA</td>
+                    <td class="text-center">18/06/2026</td>
+                    <td>CAPIVARA - CTE 8887 - AUTO POSTO CAPIVARA LTDA - 17.795.710/0002-39</td>
+                    <td class="text-right font-mono" data-val="2070.0">R$ 2.070,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="2070.0">R$ 2.070,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #ef444415;">
+                    <td colspan="3" class="font-bold">Subtotal - CAPIVARA</td>
+                    <td class="text-right font-bold font-mono" data-val="3910.0">R$ 3.910,00</td>
+                    <td class="text-right font-bold font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-bold font-mono" data-val="3910.0">R$ 3.910,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="CLEUMA" style="background-color: #8b5cf6; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: CLEUMA — 9 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="CLEUMA" style="background-color: #8b5cf6cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="CLEUMA">
+                    <td>CLEUMA</td>
+                    <td class="text-center">31/03/2026</td>
+                    <td>CLEUMA - SALDO ACUMULADO CTE - CLEUMA CAITANO MARQUES</td>
+                    <td class="text-right font-mono" data-val="41776.95">R$ 41.776,95</td>
+                    <td class="text-right font-mono" data-val="2000.0">R$ 2.000,00</td>
+                    <td class="text-right font-mono" data-val="39776.95">R$ 39.776,95</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="CLEUMA">
+                    <td>CLEUMA</td>
+                    <td class="text-center">08/04/2026</td>
+                    <td>CLEUMA - CTE 8203 - CLEUMA CAITANO MARQUES</td>
+                    <td class="text-right font-mono" data-val="2880.0">R$ 2.880,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="2880.0">R$ 2.880,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="CLEUMA">
+                    <td>CLEUMA</td>
+                    <td class="text-center">15/04/2026</td>
+                    <td>CLEUMA - CTE 8261 - CLEUMA CAITANO MARQUES</td>
+                    <td class="text-right font-mono" data-val="1440.0">R$ 1.440,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1440.0">R$ 1.440,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="CLEUMA">
+                    <td>CLEUMA</td>
+                    <td class="text-center">15/04/2026</td>
+                    <td>CLEUMA - CTE 8264 - CLEUMA CAITANO MARQUES</td>
+                    <td class="text-right font-mono" data-val="1440.0">R$ 1.440,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1440.0">R$ 1.440,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="CLEUMA">
+                    <td>CLEUMA</td>
+                    <td class="text-center">23/04/2026</td>
+                    <td>CLEUMA - CTE 8342 - CLEUMA CAITANO MARQUES</td>
+                    <td class="text-right font-mono" data-val="1440.0">R$ 1.440,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1440.0">R$ 1.440,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="CLEUMA">
+                    <td>CLEUMA</td>
+                    <td class="text-center">27/04/2026</td>
+                    <td>CLEUMA - CTE 8373 - CLEUMA CAITANO MARQUES</td>
+                    <td class="text-right font-mono" data-val="1440.0">R$ 1.440,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1440.0">R$ 1.440,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="CLEUMA">
+                    <td>CLEUMA</td>
+                    <td class="text-center">15/05/2026</td>
+                    <td>CLEUMA - CTE 8581 - CLEUMA CAITANO MARQUES</td>
+                    <td class="text-right font-mono" data-val="1440.0">R$ 1.440,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1440.0">R$ 1.440,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="CLEUMA">
+                    <td>CLEUMA</td>
+                    <td class="text-center">21/05/2026</td>
+                    <td>CLEUMA - CTE 8640 - CLEUMA CAITANO MARQUES</td>
+                    <td class="text-right font-mono" data-val="1440.0">R$ 1.440,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1440.0">R$ 1.440,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="CLEUMA">
+                    <td>CLEUMA</td>
+                    <td class="text-center">26/05/2026</td>
+                    <td>CLEUMA - CTE 8681 - CLEUMA CAITANO MARQUES</td>
+                    <td class="text-right font-mono" data-val="1440.0">R$ 1.440,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1440.0">R$ 1.440,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #8b5cf615;">
+                    <td colspan="3" class="font-bold">Subtotal - CLEUMA</td>
+                    <td class="text-right font-bold font-mono" data-val="54736.95">R$ 54.736,95</td>
+                    <td class="text-right font-bold font-mono" data-val="2000.0">R$ 2.000,00</td>
+                    <td class="text-right font-bold font-mono" data-val="52736.95">R$ 52.736,95</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="COMVEL C LTDA" style="background-color: #06b6d4; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: COMVEL C LTDA — 1 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="COMVEL C LTDA" style="background-color: #06b6d4cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="COMVEL C LTDA">
+                    <td>COMVEL C LTDA</td>
+                    <td class="text-center">15/05/2026</td>
+                    <td>COMVEL C LTDA - CTE 8577 - COMVEL COMBUSTIVEIS LTDA</td>
+                    <td class="text-right font-mono" data-val="2210.0">R$ 2.210,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="2210.0">R$ 2.210,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #06b6d415;">
+                    <td colspan="3" class="font-bold">Subtotal - COMVEL C LTDA</td>
+                    <td class="text-right font-bold font-mono" data-val="2210.0">R$ 2.210,00</td>
+                    <td class="text-right font-bold font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-bold font-mono" data-val="2210.0">R$ 2.210,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="D.P. ITABERABA" style="background-color: #ec4899; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: D.P. ITABERABA — 11 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="D.P. ITABERABA" style="background-color: #ec4899cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="D.P. ITABERABA">
+                    <td>D.P. ITABERABA</td>
+                    <td class="text-center">22/05/2026</td>
+                    <td>D.P. ITABERABA - CTE 8653 - DERIVADOS DE PETROLEO ITABERABA LTDA (ITABERABA)</td>
+                    <td class="text-right font-mono" data-val="1600.0">R$ 1.600,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1600.0">R$ 1.600,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="D.P. ITABERABA">
+                    <td>D.P. ITABERABA</td>
+                    <td class="text-center">26/05/2026</td>
+                    <td>D.P. ITABERABA - CTE 8675 - DERIVADOS DE PETROLEO ITABERABA LTDA (ITABERABA)</td>
+                    <td class="text-right font-mono" data-val="1280.0">R$ 1.280,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1280.0">R$ 1.280,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="D.P. ITABERABA">
+                    <td>D.P. ITABERABA</td>
+                    <td class="text-center">28/05/2026</td>
+                    <td>D.P. ITABERABA - CTE 8711 - DERIVADOS DE PETROLEO ITABERABA LTDA (ITABERABA)</td>
+                    <td class="text-right font-mono" data-val="1280.0">R$ 1.280,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1280.0">R$ 1.280,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="D.P. ITABERABA">
+                    <td>D.P. ITABERABA</td>
+                    <td class="text-center">29/05/2026</td>
+                    <td>D.P. ITABERABA - CTE 8729 - DERIVADOS DE PETROLEO ITABERABA LTDA (ITABERABA)</td>
+                    <td class="text-right font-mono" data-val="1760.0">R$ 1.760,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1760.0">R$ 1.760,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="D.P. ITABERABA">
+                    <td>D.P. ITABERABA</td>
+                    <td class="text-center">01/06/2026</td>
+                    <td>D.P. ITABERABA - CTE 8740 - DERIVADOS DE PETROLEO ITABERABA LTDA (ITABERABA)</td>
+                    <td class="text-right font-mono" data-val="2560.0">R$ 2.560,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="2560.0">R$ 2.560,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="D.P. ITABERABA">
+                    <td>D.P. ITABERABA</td>
+                    <td class="text-center">03/06/2026</td>
+                    <td>D.P. ITABERABA - CTE 8751 - DERIVADOS DE PETROLEO ITABERABA LTDA (ITABERABA)</td>
+                    <td class="text-right font-mono" data-val="800.0">R$ 800,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="800.0">R$ 800,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="D.P. ITABERABA">
+                    <td>D.P. ITABERABA</td>
+                    <td class="text-center">05/06/2026</td>
+                    <td>D.P. ITABERABA - CTE 8772 - DERIVADOS DE PETROLEO ITABERABA LTDA (ITABERABA)</td>
+                    <td class="text-right font-mono" data-val="1440.0">R$ 1.440,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1440.0">R$ 1.440,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="D.P. ITABERABA">
+                    <td>D.P. ITABERABA</td>
+                    <td class="text-center">08/06/2026</td>
+                    <td>D.P. ITABERABA - CTE 8793 - DERIVADOS DE PETROLEO ITABERABA LTDA (ITABERABA)</td>
+                    <td class="text-right font-mono" data-val="1280.0">R$ 1.280,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1280.0">R$ 1.280,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="D.P. ITABERABA">
+                    <td>D.P. ITABERABA</td>
+                    <td class="text-center">12/06/2026</td>
+                    <td>D.P. ITABERABA - CTE 8826 - DERIVADOS DE PETROLEO ITABERABA LTDA (ITABERABA)</td>
+                    <td class="text-right font-mono" data-val="2400.0">R$ 2.400,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="2400.0">R$ 2.400,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="D.P. ITABERABA">
+                    <td>D.P. ITABERABA</td>
+                    <td class="text-center">15/06/2026</td>
+                    <td>D.P. ITABERABA - CTE 8847 - DERIVADOS DE PETROLEO ITABERABA LTDA (ITABERABA)</td>
+                    <td class="text-right font-mono" data-val="1920.0">R$ 1.920,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1920.0">R$ 1.920,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="D.P. ITABERABA">
+                    <td>D.P. ITABERABA</td>
+                    <td class="text-center">18/06/2026</td>
+                    <td>D.P. ITABERABA - CTE 8874 - DERIVADOS DE PETROLEO ITABERABA LTDA (ITABERABA)</td>
+                    <td class="text-right font-mono" data-val="1200.0">R$ 1.200,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1200.0">R$ 1.200,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #ec489915;">
+                    <td colspan="3" class="font-bold">Subtotal - D.P. ITABERABA</td>
+                    <td class="text-right font-bold font-mono" data-val="17520.0">R$ 17.520,00</td>
+                    <td class="text-right font-bold font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-bold font-mono" data-val="17520.0">R$ 17.520,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="D.P. ITABERABA SERRA PRETA" style="background-color: #14b8a6; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: D.P. ITABERABA SERRA PRETA — 8 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="D.P. ITABERABA SERRA PRETA" style="background-color: #14b8a6cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="D.P. ITABERABA SERRA PRETA">
+                    <td>D.P. ITABERABA SERRA PRETA</td>
+                    <td class="text-center">29/05/2026</td>
+                    <td>D.P. ITABERABA SERRA PRETA - CTE 8728 - DERIVADOS DE PETROLEO ITABERABA LTDA (SERRA PRETA)</td>
+                    <td class="text-right font-mono" data-val="1540.0">R$ 1.540,00</td>
+                    <td class="text-right font-mono" data-val="1370.0">R$ 1.370,00</td>
+                    <td class="text-right font-mono" data-val="170.0">R$ 170,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="D.P. ITABERABA SERRA PRETA">
+                    <td>D.P. ITABERABA SERRA PRETA</td>
+                    <td class="text-center">01/06/2026</td>
+                    <td>D.P. ITABERABA SERRA PRETA - CTE 8739 - DERIVADOS DE PETROLEO ITABERABA LTDA (SERRA PRETA)</td>
+                    <td class="text-right font-mono" data-val="880.0">R$ 880,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="880.0">R$ 880,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="D.P. ITABERABA SERRA PRETA">
+                    <td>D.P. ITABERABA SERRA PRETA</td>
+                    <td class="text-center">03/06/2026</td>
+                    <td>D.P. ITABERABA SERRA PRETA - CTE 8761 - DERIVADOS DE PETROLEO ITABERABA LTDA (SERRA PRETA)</td>
+                    <td class="text-right font-mono" data-val="5250.0">R$ 5.250,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="5250.0">R$ 5.250,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="D.P. ITABERABA SERRA PRETA">
+                    <td>D.P. ITABERABA SERRA PRETA</td>
+                    <td class="text-center">05/06/2026</td>
+                    <td>D.P. ITABERABA SERRA PRETA - CTE 8771 - DERIVADOS DE PETROLEO ITABERABA LTDA (SERRA PRETA)</td>
+                    <td class="text-right font-mono" data-val="1320.0">R$ 1.320,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1320.0">R$ 1.320,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="D.P. ITABERABA SERRA PRETA">
+                    <td>D.P. ITABERABA SERRA PRETA</td>
+                    <td class="text-center">10/06/2026</td>
+                    <td>D.P. ITABERABA SERRA PRETA - CTE 8802 - DERIVADOS DE PETROLEO ITABERABA LTDA (SERRA PRETA)</td>
+                    <td class="text-right font-mono" data-val="5250.0">R$ 5.250,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="5250.0">R$ 5.250,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="D.P. ITABERABA SERRA PRETA">
+                    <td>D.P. ITABERABA SERRA PRETA</td>
+                    <td class="text-center">12/06/2026</td>
+                    <td>D.P. ITABERABA SERRA PRETA - CTE 8825 - DERIVADOS DE PETROLEO ITABERABA LTDA (SERRA PRETA)</td>
+                    <td class="text-right font-mono" data-val="1100.0">R$ 1.100,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1100.0">R$ 1.100,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="D.P. ITABERABA SERRA PRETA">
+                    <td>D.P. ITABERABA SERRA PRETA</td>
+                    <td class="text-center">15/06/2026</td>
+                    <td>D.P. ITABERABA SERRA PRETA - CTE 8848 - DERIVADOS DE PETROLEO ITABERABA LTDA (SERRA PRETA)</td>
+                    <td class="text-right font-mono" data-val="1430.0">R$ 1.430,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1430.0">R$ 1.430,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="D.P. ITABERABA SERRA PRETA">
+                    <td>D.P. ITABERABA SERRA PRETA</td>
+                    <td class="text-center">16/06/2026</td>
+                    <td>D.P. ITABERABA SERRA PRETA - CTE 8853 - DERIVADOS DE PETROLEO ITABERABA LTDA (SERRA PRETA)</td>
+                    <td class="text-right font-mono" data-val="5250.0">R$ 5.250,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="5250.0">R$ 5.250,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #14b8a615;">
+                    <td colspan="3" class="font-bold">Subtotal - D.P. ITABERABA SERRA PRETA</td>
+                    <td class="text-right font-bold font-mono" data-val="22020.0">R$ 22.020,00</td>
+                    <td class="text-right font-bold font-mono" data-val="1370.0">R$ 1.370,00</td>
+                    <td class="text-right font-bold font-mono" data-val="20650.0">R$ 20.650,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="ELSON" style="background-color: #f97316; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: ELSON — 9 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="ELSON" style="background-color: #f97316cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="ELSON">
+                    <td>ELSON</td>
+                    <td class="text-center">21/05/2026</td>
+                    <td>ELSON - CTE 8641 - ELSON DOS SANTOS</td>
+                    <td class="text-right font-mono" data-val="4000.0">R$ 4.000,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="4000.0">R$ 4.000,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="ELSON">
+                    <td>ELSON</td>
+                    <td class="text-center">29/05/2026</td>
+                    <td>ELSON - CTE 8725 - ELSON DOS SANTOS</td>
+                    <td class="text-right font-mono" data-val="1200.0">R$ 1.200,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1200.0">R$ 1.200,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="ELSON">
+                    <td>ELSON</td>
+                    <td class="text-center">02/06/2026</td>
+                    <td>ELSON - CTE 8744 - ELSON DOS SANTOS</td>
+                    <td class="text-right font-mono" data-val="1200.0">R$ 1.200,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1200.0">R$ 1.200,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="ELSON">
+                    <td>ELSON</td>
+                    <td class="text-center">06/06/2026</td>
+                    <td>ELSON - CTE 8777 - ELSON DOS SANTOS</td>
+                    <td class="text-right font-mono" data-val="4000.0">R$ 4.000,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="4000.0">R$ 4.000,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="ELSON">
+                    <td>ELSON</td>
+                    <td class="text-center">10/06/2026</td>
+                    <td>ELSON - CTE 8806 - ELSON DOS SANTOS</td>
+                    <td class="text-right font-mono" data-val="1200.0">R$ 1.200,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1200.0">R$ 1.200,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="ELSON">
+                    <td>ELSON</td>
+                    <td class="text-center">10/06/2026</td>
+                    <td>ELSON - CTE 8805 - ELSON DOS SANTOS</td>
+                    <td class="text-right font-mono" data-val="4000.0">R$ 4.000,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="4000.0">R$ 4.000,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="ELSON">
+                    <td>ELSON</td>
+                    <td class="text-center">21/05/2026</td>
+                    <td>ELSON - CTE 8643 - GONZAGA COMBUSTIVEIS LTDA</td>
+                    <td class="text-right font-mono" data-val="1200.0">R$ 1.200,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1200.0">R$ 1.200,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="ELSON">
+                    <td>ELSON</td>
+                    <td class="text-center">29/05/2026</td>
+                    <td>ELSON - CTE 8723 - GONZAGA COMBUSTIVEIS LTDA</td>
+                    <td class="text-right font-mono" data-val="1200.0">R$ 1.200,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1200.0">R$ 1.200,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="ELSON">
+                    <td>ELSON</td>
+                    <td class="text-center">17/06/2026</td>
+                    <td>ELSON - CTE 8871 - GONZAGA COMBUSTIVEIS LTDA</td>
+                    <td class="text-right font-mono" data-val="4400.0">R$ 4.400,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="4400.0">R$ 4.400,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #f9731615;">
+                    <td colspan="3" class="font-bold">Subtotal - ELSON</td>
+                    <td class="text-right font-bold font-mono" data-val="22400.0">R$ 22.400,00</td>
+                    <td class="text-right font-bold font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-bold font-mono" data-val="22400.0">R$ 22.400,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="FLOR DA CHAPADA" style="background-color: #3b82f6; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: FLOR DA CHAPADA — 2 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="FLOR DA CHAPADA" style="background-color: #3b82f6cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="FLOR DA CHAPADA">
+                    <td>FLOR DA CHAPADA</td>
+                    <td class="text-center">18/06/2026</td>
+                    <td>FLOR DA CHAPADA - CTE 8873 - AUTO POSTO FLOR DA CHAPADA LTDA (00.075.021/0001-76)</td>
+                    <td class="text-right font-mono" data-val="1440.0">R$ 1.440,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1440.0">R$ 1.440,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="FLOR DA CHAPADA">
+                    <td>FLOR DA CHAPADA</td>
+                    <td class="text-center">18/06/2026</td>
+                    <td>FLOR DA CHAPADA - CTE 8872 - AUTO POSTO FLOR DA CHAPADA LTDA (00.075.021/0002-57)</td>
+                    <td class="text-right font-mono" data-val="3360.0">R$ 3.360,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="3360.0">R$ 3.360,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #3b82f615;">
+                    <td colspan="3" class="font-bold">Subtotal - FLOR DA CHAPADA</td>
+                    <td class="text-right font-bold font-mono" data-val="4800.0">R$ 4.800,00</td>
+                    <td class="text-right font-bold font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-bold font-mono" data-val="4800.0">R$ 4.800,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="LARCO" style="background-color: #84cc16; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: LARCO — 4 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="LARCO" style="background-color: #84cc16cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="LARCO">
+                    <td>LARCO</td>
+                    <td class="text-center">01/06/2026</td>
+                    <td>LARCO - CTE 8741 - C R P COMBUSTIVEIS EIRELI</td>
+                    <td class="text-right font-mono" data-val="2500.0">R$ 2.500,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="2500.0">R$ 2.500,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="LARCO">
+                    <td>LARCO</td>
+                    <td class="text-center">01/06/2026</td>
+                    <td>LARCO - CTE 8737 - ENERGIA EMPREEND E COMBUSTIVEIS LTDA</td>
+                    <td class="text-right font-mono" data-val="3840.0">R$ 3.840,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="3840.0">R$ 3.840,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="LARCO">
+                    <td>LARCO</td>
+                    <td class="text-center">01/06/2026</td>
+                    <td>LARCO - CTE 8738 - ENERGIA EMPREENDIMENTOS E COMB LTDA</td>
+                    <td class="text-right font-mono" data-val="2160.0">R$ 2.160,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="2160.0">R$ 2.160,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="LARCO">
+                    <td>LARCO</td>
+                    <td class="text-center">08/06/2026</td>
+                    <td>LARCO - CTE 8786 - J F COMERCIO DE COMBUSTIVEIS LTDA</td>
+                    <td class="text-right font-mono" data-val="4250.0">R$ 4.250,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="4250.0">R$ 4.250,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #84cc1615;">
+                    <td colspan="3" class="font-bold">Subtotal - LARCO</td>
+                    <td class="text-right font-bold font-mono" data-val="12750.0">R$ 12.750,00</td>
+                    <td class="text-right font-bold font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-bold font-mono" data-val="12750.0">R$ 12.750,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="LAVIO" style="background-color: #a855f7; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: LAVIO — 2 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="LAVIO" style="background-color: #a855f7cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="LAVIO">
+                    <td>LAVIO</td>
+                    <td class="text-center">06/06/2026</td>
+                    <td>LAVIO - CTE 8776 - LAVIO COMBUSTIVEIS EIRELI</td>
+                    <td class="text-right font-mono" data-val="1200.0">R$ 1.200,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1200.0">R$ 1.200,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="LAVIO">
+                    <td>LAVIO</td>
+                    <td class="text-center">17/06/2026</td>
+                    <td>LAVIO - CTE 8870 - LAVIO COMBUSTIVEIS EIRELI</td>
+                    <td class="text-right font-mono" data-val="3600.0">R$ 3.600,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="3600.0">R$ 3.600,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #a855f715;">
+                    <td colspan="3" class="font-bold">Subtotal - LAVIO</td>
+                    <td class="text-right font-bold font-mono" data-val="4800.0">R$ 4.800,00</td>
+                    <td class="text-right font-bold font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-bold font-mono" data-val="4800.0">R$ 4.800,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="LUCIANO" style="background-color: #0ea5e9; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: LUCIANO — 3 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="LUCIANO" style="background-color: #0ea5e9cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="LUCIANO">
+                    <td>LUCIANO</td>
+                    <td class="text-center">27/04/2026</td>
+                    <td>LUCIANO - CTE 8374 - LUCIANO DE SOUSA LEITE - EPP POSTO CONTORNO DO BRAVO</td>
+                    <td class="text-right font-mono" data-val="880.0">R$ 880,00</td>
+                    <td class="text-right font-mono" data-val="810.0">R$ 810,00</td>
+                    <td class="text-right font-mono" data-val="70.0">R$ 70,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="LUCIANO">
+                    <td>LUCIANO</td>
+                    <td class="text-center">27/05/2026</td>
+                    <td>LUCIANO - CTE 8703 - LUCIANO DE SOUSA LEITE - EPP POSTO CONTORNO DO BRAVO</td>
+                    <td class="text-right font-mono" data-val="330.0">R$ 330,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="330.0">R$ 330,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="LUCIANO">
+                    <td>LUCIANO</td>
+                    <td class="text-center">18/06/2026</td>
+                    <td>LUCIANO - CTE 8886 - LUCIANO DE SOUSA LEITE - EPP POSTO CONTORNO DO BRAVO</td>
+                    <td class="text-right font-mono" data-val="330.0">R$ 330,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="330.0">R$ 330,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #0ea5e915;">
+                    <td colspan="3" class="font-bold">Subtotal - LUCIANO</td>
+                    <td class="text-right font-bold font-mono" data-val="1540.0">R$ 1.540,00</td>
+                    <td class="text-right font-bold font-mono" data-val="810.0">R$ 810,00</td>
+                    <td class="text-right font-bold font-mono" data-val="730.0">R$ 730,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="MARCILIO JOSE" style="background-color: #e11d48; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: MARCILIO JOSE — 4 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="MARCILIO JOSE" style="background-color: #e11d48cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="MARCILIO JOSE">
+                    <td>MARCILIO JOSE</td>
+                    <td class="text-center">12/05/2026</td>
+                    <td>MARCILIO JOSE - CTE 8546 - MARCILIO JOSE ANDRADE RIBEIRO & CIA LTDA</td>
+                    <td class="text-right font-mono" data-val="3240.0">R$ 3.240,00</td>
+                    <td class="text-right font-mono" data-val="2050.0">R$ 2.050,00</td>
+                    <td class="text-right font-mono" data-val="1190.0">R$ 1.190,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="MARCILIO JOSE">
+                    <td>MARCILIO JOSE</td>
+                    <td class="text-center">15/06/2026</td>
+                    <td>MARCILIO JOSE - CTE 8844 - MARCILIO JOSE ANDRADE RIBEIRO & CIA LTDA</td>
+                    <td class="text-right font-mono" data-val="2880.0">R$ 2.880,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="2880.0">R$ 2.880,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="MARCILIO JOSE">
+                    <td>MARCILIO JOSE</td>
+                    <td class="text-center">15/06/2026</td>
+                    <td>MARCILIO JOSE - CTE 8845 - POSTO CHAPADA DE BROTAS</td>
+                    <td class="text-right font-mono" data-val="1080.0">R$ 1.080,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1080.0">R$ 1.080,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="MARCILIO JOSE">
+                    <td>MARCILIO JOSE</td>
+                    <td class="text-center">15/06/2026</td>
+                    <td>MARCILIO JOSE - CTE 8843 - POSTO MANDARIM</td>
+                    <td class="text-right font-mono" data-val="4680.0">R$ 4.680,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="4680.0">R$ 4.680,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #e11d4815;">
+                    <td colspan="3" class="font-bold">Subtotal - MARCILIO JOSE</td>
+                    <td class="text-right font-bold font-mono" data-val="11880.0">R$ 11.880,00</td>
+                    <td class="text-right font-bold font-mono" data-val="2050.0">R$ 2.050,00</td>
+                    <td class="text-right font-bold font-mono" data-val="9830.0">R$ 9.830,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="MARCOS TELES MARQUES DE LIMA" style="background-color: #65a30d; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: MARCOS TELES MARQUES DE LIMA — 3 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="MARCOS TELES MARQUES DE LIMA" style="background-color: #65a30dcc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="MARCOS TELES MARQUES DE LIMA">
+                    <td>MARCOS TELES MARQUES DE LIMA</td>
+                    <td class="text-center">03/06/2026</td>
+                    <td>MARCOS TELES MARQUES DE LIMA - CTE 8757 - MARCOS TELES MARQUES DE LIMA</td>
+                    <td class="text-right font-mono" data-val="3600.0">R$ 3.600,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="3600.0">R$ 3.600,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="MARCOS TELES MARQUES DE LIMA">
+                    <td>MARCOS TELES MARQUES DE LIMA</td>
+                    <td class="text-center">12/06/2026</td>
+                    <td>MARCOS TELES MARQUES DE LIMA - CTE 8819 - MARCOS TELES MARQUES DE LIMA</td>
+                    <td class="text-right font-mono" data-val="3120.0">R$ 3.120,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="3120.0">R$ 3.120,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="MARCOS TELES MARQUES DE LIMA">
+                    <td>MARCOS TELES MARQUES DE LIMA</td>
+                    <td class="text-center">12/06/2026</td>
+                    <td>MARCOS TELES MARQUES DE LIMA - CTE 8820 - MARCOS TELES MARQUES DE LIMA</td>
+                    <td class="text-right font-mono" data-val="960.0">R$ 960,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="960.0">R$ 960,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #65a30d15;">
+                    <td colspan="3" class="font-bold">Subtotal - MARCOS TELES MARQUES DE LIMA</td>
+                    <td class="text-right font-bold font-mono" data-val="7680.0">R$ 7.680,00</td>
+                    <td class="text-right font-bold font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-bold font-mono" data-val="7680.0">R$ 7.680,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="NOVA BRASILIA" style="background-color: #6366f1; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: NOVA BRASILIA — 2 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="NOVA BRASILIA" style="background-color: #6366f1cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="NOVA BRASILIA">
+                    <td>NOVA BRASILIA</td>
+                    <td class="text-center">02/06/2026</td>
+                    <td>NOVA BRASILIA - CTE 8746 - POSTO NOVA BRASILIA IPIRA LTDA - ME</td>
+                    <td class="text-right font-mono" data-val="420.0">R$ 420,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="420.0">R$ 420,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="NOVA BRASILIA">
+                    <td>NOVA BRASILIA</td>
+                    <td class="text-center">16/06/2026</td>
+                    <td>NOVA BRASILIA - CTE 8861 - POSTO NOVA BRASILIA IPIRA LTDA - ME</td>
+                    <td class="text-right font-mono" data-val="420.0">R$ 420,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="420.0">R$ 420,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #6366f115;">
+                    <td colspan="3" class="font-bold">Subtotal - NOVA BRASILIA</td>
+                    <td class="text-right font-bold font-mono" data-val="840.0">R$ 840,00</td>
+                    <td class="text-right font-bold font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-bold font-mono" data-val="840.0">R$ 840,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="PATRIOTA" style="background-color: #10b981; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: PATRIOTA — 1 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="PATRIOTA" style="background-color: #10b981cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="PATRIOTA">
+                    <td>PATRIOTA</td>
+                    <td class="text-center">16/06/2026</td>
+                    <td>PATRIOTA - CTE 8857 - POSTO PATRIOTA LTDA</td>
+                    <td class="text-right font-mono" data-val="640.0">R$ 640,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="640.0">R$ 640,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #10b98115;">
+                    <td colspan="3" class="font-bold">Subtotal - PATRIOTA</td>
+                    <td class="text-right font-bold font-mono" data-val="640.0">R$ 640,00</td>
+                    <td class="text-right font-bold font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-bold font-mono" data-val="640.0">R$ 640,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="PAU DE COLHER" style="background-color: #f59e0b; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: PAU DE COLHER — 4 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="PAU DE COLHER" style="background-color: #f59e0bcc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="PAU DE COLHER">
+                    <td>PAU DE COLHER</td>
+                    <td class="text-center">03/06/2026</td>
+                    <td>PAU DE COLHER - CTE 8753 - C. B. ARAUJO SANTOS</td>
+                    <td class="text-right font-mono" data-val="550.0">R$ 550,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="550.0">R$ 550,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="PAU DE COLHER">
+                    <td>PAU DE COLHER</td>
+                    <td class="text-center">11/06/2026</td>
+                    <td>PAU DE COLHER - CTE 8809 - C. B. ARAUJO SANTOS</td>
+                    <td class="text-right font-mono" data-val="550.0">R$ 550,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="550.0">R$ 550,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="PAU DE COLHER">
+                    <td>PAU DE COLHER</td>
+                    <td class="text-center">13/06/2026</td>
+                    <td>PAU DE COLHER - CTE 8830 - C. B. ARAUJO SANTOS</td>
+                    <td class="text-right font-mono" data-val="330.0">R$ 330,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="330.0">R$ 330,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="PAU DE COLHER">
+                    <td>PAU DE COLHER</td>
+                    <td class="text-center">18/06/2026</td>
+                    <td>PAU DE COLHER - CTE 8875 - C. B. ARAUJO SANTOS</td>
+                    <td class="text-right font-mono" data-val="550.0">R$ 550,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="550.0">R$ 550,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #f59e0b15;">
+                    <td colspan="3" class="font-bold">Subtotal - PAU DE COLHER</td>
+                    <td class="text-right font-bold font-mono" data-val="1980.0">R$ 1.980,00</td>
+                    <td class="text-right font-bold font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-bold font-mono" data-val="1980.0">R$ 1.980,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="PIETRO" style="background-color: #ef4444; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: PIETRO — 7 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="PIETRO" style="background-color: #ef4444cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="PIETRO">
+                    <td>PIETRO</td>
+                    <td class="text-center">01/04/2026</td>
+                    <td>PIETRO - CTE 8147 - PIETRO MOURA COMBUSTIVEIS LTDA</td>
+                    <td class="text-right font-mono" data-val="2400.0">R$ 2.400,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="2400.0">R$ 2.400,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="PIETRO">
+                    <td>PIETRO</td>
+                    <td class="text-center">17/04/2026</td>
+                    <td>PIETRO - CTE 8302 - PIETRO MOURA COMBUSTIVEIS LTDA</td>
+                    <td class="text-right font-mono" data-val="1440.0">R$ 1.440,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1440.0">R$ 1.440,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="PIETRO">
+                    <td>PIETRO</td>
+                    <td class="text-center">23/04/2026</td>
+                    <td>PIETRO - CTE 8341 - PIETRO MOURA COMBUSTIVEIS LTDA</td>
+                    <td class="text-right font-mono" data-val="2400.0">R$ 2.400,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="2400.0">R$ 2.400,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="PIETRO">
+                    <td>PIETRO</td>
+                    <td class="text-center">08/05/2026</td>
+                    <td>PIETRO - CTE 8493 - PIETRO MOURA COMBUSTIVEIS LTDA</td>
+                    <td class="text-right font-mono" data-val="3840.0">R$ 3.840,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="3840.0">R$ 3.840,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="PIETRO">
+                    <td>PIETRO</td>
+                    <td class="text-center">15/05/2026</td>
+                    <td>PIETRO - CTE 8580 - PIETRO MOURA COMBUSTIVEIS LTDA</td>
+                    <td class="text-right font-mono" data-val="2400.0">R$ 2.400,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="2400.0">R$ 2.400,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="PIETRO">
+                    <td>PIETRO</td>
+                    <td class="text-center">26/05/2026</td>
+                    <td>PIETRO - CTE 8679 - PIETRO MOURA COMBUSTIVEIS LTDA</td>
+                    <td class="text-right font-mono" data-val="3840.0">R$ 3.840,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="3840.0">R$ 3.840,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="PIETRO">
+                    <td>PIETRO</td>
+                    <td class="text-center">06/06/2026</td>
+                    <td>PIETRO - CTE 8778 - PIETRO MOURA COMBUSTIVEIS LTDA</td>
+                    <td class="text-right font-mono" data-val="3840.0">R$ 3.840,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="3840.0">R$ 3.840,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #ef444415;">
+                    <td colspan="3" class="font-bold">Subtotal - PIETRO</td>
+                    <td class="text-right font-bold font-mono" data-val="20160.0">R$ 20.160,00</td>
+                    <td class="text-right font-bold font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-bold font-mono" data-val="20160.0">R$ 20.160,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="POSTO DIAMANTINA" style="background-color: #8b5cf6; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: POSTO DIAMANTINA — 1 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="POSTO DIAMANTINA" style="background-color: #8b5cf6cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="POSTO DIAMANTINA">
+                    <td>POSTO DIAMANTINA</td>
+                    <td class="text-center">16/06/2026</td>
+                    <td>POSTO DIAMANTINA - CTE 8855 - POSTO DE COMBUSTIVEL CHAPADA DIAMANTINA LTDA</td>
+                    <td class="text-right font-mono" data-val="800.0">R$ 800,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="800.0">R$ 800,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #8b5cf615;">
+                    <td colspan="3" class="font-bold">Subtotal - POSTO DIAMANTINA</td>
+                    <td class="text-right font-bold font-mono" data-val="800.0">R$ 800,00</td>
+                    <td class="text-right font-bold font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-bold font-mono" data-val="800.0">R$ 800,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="POSTO ELLO" style="background-color: #06b6d4; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: POSTO ELLO — 1 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="POSTO ELLO" style="background-color: #06b6d4cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="POSTO ELLO">
+                    <td>POSTO ELLO</td>
+                    <td class="text-center">18/06/2026</td>
+                    <td>POSTO ELLO - CTE 8885 - ADEMIR FRAGA LIMA CIA LTDA</td>
+                    <td class="text-right font-mono" data-val="990.0">R$ 990,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="990.0">R$ 990,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #06b6d415;">
+                    <td colspan="3" class="font-bold">Subtotal - POSTO ELLO</td>
+                    <td class="text-right font-bold font-mono" data-val="990.0">R$ 990,00</td>
+                    <td class="text-right font-bold font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-bold font-mono" data-val="990.0">R$ 990,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="POSTO PH LTDA" style="background-color: #ec4899; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: POSTO PH LTDA — 2 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="POSTO PH LTDA" style="background-color: #ec4899cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="POSTO PH LTDA">
+                    <td>POSTO PH LTDA</td>
+                    <td class="text-center">09/06/2026</td>
+                    <td>POSTO PH LTDA - CTE 8800 - POSTO PH LTDA</td>
+                    <td class="text-right font-mono" data-val="1920.0">R$ 1.920,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1920.0">R$ 1.920,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="POSTO PH LTDA">
+                    <td>POSTO PH LTDA</td>
+                    <td class="text-center">12/06/2026</td>
+                    <td>POSTO PH LTDA - CTE 8828 - POSTO PH LTDA</td>
+                    <td class="text-right font-mono" data-val="2720.0">R$ 2.720,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="2720.0">R$ 2.720,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #ec489915;">
+                    <td colspan="3" class="font-bold">Subtotal - POSTO PH LTDA</td>
+                    <td class="text-right font-bold font-mono" data-val="4640.0">R$ 4.640,00</td>
+                    <td class="text-right font-bold font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-bold font-mono" data-val="4640.0">R$ 4.640,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="REDE BRAX" style="background-color: #14b8a6; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: REDE BRAX — 1 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="REDE BRAX" style="background-color: #14b8a6cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="REDE BRAX">
+                    <td>REDE BRAX</td>
+                    <td class="text-center">12/06/2026</td>
+                    <td>REDE BRAX - CTE 8821 - POSTO BRX LTDA</td>
+                    <td class="text-right font-mono" data-val="640.0">R$ 640,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="640.0">R$ 640,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #14b8a615;">
+                    <td colspan="3" class="font-bold">Subtotal - REDE BRAX</td>
+                    <td class="text-right font-bold font-mono" data-val="640.0">R$ 640,00</td>
+                    <td class="text-right font-bold font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-bold font-mono" data-val="640.0">R$ 640,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="REDE SERVEBEM" style="background-color: #f97316; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: REDE SERVEBEM — 9 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="REDE SERVEBEM" style="background-color: #f97316cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="REDE SERVEBEM">
+                    <td>REDE SERVEBEM</td>
+                    <td class="text-center">16/06/2026</td>
+                    <td>REDE SERVEBEM - CTE 8850 - COMERCIAL DE COMBUSTIVEIS MARTINS LTDA</td>
+                    <td class="text-right font-mono" data-val="3000.0">R$ 3.000,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="3000.0">R$ 3.000,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="REDE SERVEBEM">
+                    <td>REDE SERVEBEM</td>
+                    <td class="text-center">17/06/2026</td>
+                    <td>REDE SERVEBEM - CTE 8868 - COMERCIAL DE COMBUSTIVEIS MARTINS LTDA</td>
+                    <td class="text-right font-mono" data-val="1200.0">R$ 1.200,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1200.0">R$ 1.200,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="REDE SERVEBEM">
+                    <td>REDE SERVEBEM</td>
+                    <td class="text-center">17/06/2026</td>
+                    <td>REDE SERVEBEM - CTE 8863 - COMERCIAL DE COMBUSTIVEIS MARTINS LTDA</td>
+                    <td class="text-right font-mono" data-val="3000.0">R$ 3.000,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="3000.0">R$ 3.000,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="REDE SERVEBEM">
+                    <td>REDE SERVEBEM</td>
+                    <td class="text-center">17/06/2026</td>
+                    <td>REDE SERVEBEM - CTE 8866 - POSTO AVE MARIA</td>
+                    <td class="text-right font-mono" data-val="1000.0">R$ 1.000,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1000.0">R$ 1.000,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="REDE SERVEBEM">
+                    <td>REDE SERVEBEM</td>
+                    <td class="text-center">17/06/2026</td>
+                    <td>REDE SERVEBEM - CTE 8864 - POSTO BERIMBAU</td>
+                    <td class="text-right font-mono" data-val="800.0">R$ 800,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="800.0">R$ 800,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="REDE SERVEBEM">
+                    <td>REDE SERVEBEM</td>
+                    <td class="text-center">16/06/2026</td>
+                    <td>REDE SERVEBEM - CTE 8849 - POSTO CONTORNO LTDA</td>
+                    <td class="text-right font-mono" data-val="2000.0">R$ 2.000,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="2000.0">R$ 2.000,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="REDE SERVEBEM">
+                    <td>REDE SERVEBEM</td>
+                    <td class="text-center">17/06/2026</td>
+                    <td>REDE SERVEBEM - CTE 8862 - POSTO CONTORNO LTDA</td>
+                    <td class="text-right font-mono" data-val="2000.0">R$ 2.000,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="2000.0">R$ 2.000,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="REDE SERVEBEM">
+                    <td>REDE SERVEBEM</td>
+                    <td class="text-center">17/06/2026</td>
+                    <td>REDE SERVEBEM - CTE 8865 - POSTO CORAÇÃO DE MARIA</td>
+                    <td class="text-right font-mono" data-val="1000.0">R$ 1.000,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1000.0">R$ 1.000,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="REDE SERVEBEM">
+                    <td>REDE SERVEBEM</td>
+                    <td class="text-center">17/06/2026</td>
+                    <td>REDE SERVEBEM - CTE 8867 - POSTO SERVE BEM 2</td>
+                    <td class="text-right font-mono" data-val="1000.0">R$ 1.000,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1000.0">R$ 1.000,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #f9731615;">
+                    <td colspan="3" class="font-bold">Subtotal - REDE SERVEBEM</td>
+                    <td class="text-right font-bold font-mono" data-val="15000.0">R$ 15.000,00</td>
+                    <td class="text-right font-bold font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-bold font-mono" data-val="15000.0">R$ 15.000,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="RODRIGO TORRES" style="background-color: #3b82f6; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: RODRIGO TORRES — 13 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="RODRIGO TORRES" style="background-color: #3b82f6cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="RODRIGO TORRES">
+                    <td>RODRIGO TORRES</td>
+                    <td class="text-center">16/05/2026</td>
+                    <td>RODRIGO TORRES - CTE 8591 - GF COMERCIO DE DERIVADOS DE PETROLEO LTD - FEIRA DE SANTANA</td>
+                    <td class="text-right font-mono" data-val="500.0">R$ 500,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="500.0">R$ 500,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="RODRIGO TORRES">
+                    <td>RODRIGO TORRES</td>
+                    <td class="text-center">26/05/2026</td>
+                    <td>RODRIGO TORRES - CTE 8693 - GF COMERCIO DE DERIVADOS DE PETROLEO LTD - FEIRA DE SANTANA</td>
+                    <td class="text-right font-mono" data-val="400.0">R$ 400,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="400.0">R$ 400,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="RODRIGO TORRES">
+                    <td>RODRIGO TORRES</td>
+                    <td class="text-center">22/04/2026</td>
+                    <td>RODRIGO TORRES - CTE 8325 - GF COMERCIO DE DERIVADOS DE PETROLEO LTD - LAJEDINHO</td>
+                    <td class="text-right font-mono" data-val="1100.0">R$ 1.100,00</td>
+                    <td class="text-right font-mono" data-val="754.48">R$ 754,48</td>
+                    <td class="text-right font-mono" data-val="345.52">R$ 345,52</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="RODRIGO TORRES">
+                    <td>RODRIGO TORRES</td>
+                    <td class="text-center">23/04/2026</td>
+                    <td>RODRIGO TORRES - CTE 8347 - GF COMERCIO DE DERIVADOS DE PETROLEO LTD - LAJEDINHO</td>
+                    <td class="text-right font-mono" data-val="1760.0">R$ 1.760,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1760.0">R$ 1.760,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="RODRIGO TORRES">
+                    <td>RODRIGO TORRES</td>
+                    <td class="text-center">29/04/2026</td>
+                    <td>RODRIGO TORRES - CTE 8395 - GF COMERCIO DE DERIVADOS DE PETROLEO LTD - LAJEDINHO</td>
+                    <td class="text-right font-mono" data-val="2200.0">R$ 2.200,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="2200.0">R$ 2.200,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="RODRIGO TORRES">
+                    <td>RODRIGO TORRES</td>
+                    <td class="text-center">09/05/2026</td>
+                    <td>RODRIGO TORRES - CTE 8514 - GF COMERCIO DE DERIVADOS DE PETROLEO LTD - LAJEDINHO</td>
+                    <td class="text-right font-mono" data-val="1100.0">R$ 1.100,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1100.0">R$ 1.100,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="RODRIGO TORRES">
+                    <td>RODRIGO TORRES</td>
+                    <td class="text-center">12/05/2026</td>
+                    <td>RODRIGO TORRES - CTE 8542 - GF COMERCIO DE DERIVADOS DE PETROLEO LTD - LAJEDINHO</td>
+                    <td class="text-right font-mono" data-val="880.0">R$ 880,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="880.0">R$ 880,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="RODRIGO TORRES">
+                    <td>RODRIGO TORRES</td>
+                    <td class="text-center">22/05/2026</td>
+                    <td>RODRIGO TORRES - CTE 8663 - GF COMERCIO DE DERIVADOS DE PETROLEO LTD - LAJEDINHO</td>
+                    <td class="text-right font-mono" data-val="1980.0">R$ 1.980,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1980.0">R$ 1.980,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="RODRIGO TORRES">
+                    <td>RODRIGO TORRES</td>
+                    <td class="text-center">28/05/2026</td>
+                    <td>RODRIGO TORRES - CTE 8714 - GF COMERCIO DE DERIVADOS DE PETROLEO LTD - LAJEDINHO</td>
+                    <td class="text-right font-mono" data-val="1980.0">R$ 1.980,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1980.0">R$ 1.980,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="RODRIGO TORRES">
+                    <td>RODRIGO TORRES</td>
+                    <td class="text-center">30/05/2026</td>
+                    <td>RODRIGO TORRES - CTE 8734 - GF COMERCIO DE DERIVADOS DE PETROLEO LTD - LAJEDINHO</td>
+                    <td class="text-right font-mono" data-val="1540.0">R$ 1.540,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1540.0">R$ 1.540,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="RODRIGO TORRES">
+                    <td>RODRIGO TORRES</td>
+                    <td class="text-center">03/06/2026</td>
+                    <td>RODRIGO TORRES - CTE 8756 - GF COMERCIO DE DERIVADOS DE PETROLEO LTD - LAJEDINHO</td>
+                    <td class="text-right font-mono" data-val="2200.0">R$ 2.200,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="2200.0">R$ 2.200,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="RODRIGO TORRES">
+                    <td>RODRIGO TORRES</td>
+                    <td class="text-center">16/06/2026</td>
+                    <td>RODRIGO TORRES - CTE 8854 - GF COMERCIO DE DERIVADOS DE PETROLEO LTD - LAJEDINHO</td>
+                    <td class="text-right font-mono" data-val="2640.0">R$ 2.640,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="2640.0">R$ 2.640,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="RODRIGO TORRES">
+                    <td>RODRIGO TORRES</td>
+                    <td class="text-center">18/06/2026</td>
+                    <td>RODRIGO TORRES - CTE 8879 - GF COMERCIO DE DERIVADOS DE PETROLEO LTD - LAJEDINHO</td>
+                    <td class="text-right font-mono" data-val="2200.0">R$ 2.200,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="2200.0">R$ 2.200,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #3b82f615;">
+                    <td colspan="3" class="font-bold">Subtotal - RODRIGO TORRES</td>
+                    <td class="text-right font-bold font-mono" data-val="20480.0">R$ 20.480,00</td>
+                    <td class="text-right font-bold font-mono" data-val="754.48">R$ 754,48</td>
+                    <td class="text-right font-bold font-mono" data-val="19725.52">R$ 19.725,52</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="TOTAL DISTRIBUIDORA S.A" style="background-color: #84cc16; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: TOTAL DISTRIBUIDORA S.A — 2 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="TOTAL DISTRIBUIDORA S.A" style="background-color: #84cc16cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="TOTAL DISTRIBUIDORA S.A">
+                    <td>TOTAL DISTRIBUIDORA S.A</td>
+                    <td class="text-center">05/06/2026</td>
+                    <td>TOTAL DISTRIBUIDORA S.A - CTE 8765 - G L COMBUSTIVEIS E SERVICOS LTDA.</td>
+                    <td class="text-right font-mono" data-val="1190.0">R$ 1.190,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1190.0">R$ 1.190,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="TOTAL DISTRIBUIDORA S.A">
+                    <td>TOTAL DISTRIBUIDORA S.A</td>
+                    <td class="text-center">05/06/2026</td>
+                    <td>TOTAL DISTRIBUIDORA S.A - CTE 8764 - PETROPOLIS COMBUSTIVEIS E SERVICOS</td>
+                    <td class="text-right font-mono" data-val="560.0">R$ 560,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="560.0">R$ 560,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #84cc1615;">
+                    <td colspan="3" class="font-bold">Subtotal - TOTAL DISTRIBUIDORA S.A</td>
+                    <td class="text-right font-bold font-mono" data-val="1750.0">R$ 1.750,00</td>
+                    <td class="text-right font-bold font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-bold font-mono" data-val="1750.0">R$ 1.750,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="UESLEI" style="background-color: #a855f7; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: UESLEI — 7 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="UESLEI" style="background-color: #a855f7cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="UESLEI">
+                    <td>UESLEI</td>
+                    <td class="text-center">08/06/2026</td>
+                    <td>UESLEI - CTE 8783 - AUTO POSTO PORTAL DE IBITIARA LTDA</td>
+                    <td class="text-right font-mono" data-val="660.0">R$ 660,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="660.0">R$ 660,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="UESLEI">
+                    <td>UESLEI</td>
+                    <td class="text-center">08/06/2026</td>
+                    <td>UESLEI - CTE 8782 - AUTO POSTO PORTAL DE IBITIARA LTDA</td>
+                    <td class="text-right font-mono" data-val="1100.0">R$ 1.100,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1100.0">R$ 1.100,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="UESLEI">
+                    <td>UESLEI</td>
+                    <td class="text-center">08/06/2026</td>
+                    <td>UESLEI - CTE 8784 - AUTO POSTO PORTAL DE IBITIARA LTDA</td>
+                    <td class="text-right font-mono" data-val="660.0">R$ 660,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="660.0">R$ 660,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="UESLEI">
+                    <td>UESLEI</td>
+                    <td class="text-center">12/06/2026</td>
+                    <td>UESLEI - CTE 8823 - AUTO POSTO PORTAL DE IBITIARA LTDA</td>
+                    <td class="text-right font-mono" data-val="2420.0">R$ 2.420,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="2420.0">R$ 2.420,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="UESLEI">
+                    <td>UESLEI</td>
+                    <td class="text-center">12/06/2026</td>
+                    <td>UESLEI - CTE 8822 - AUTO POSTO PORTAL DE IBITIARA LTDA</td>
+                    <td class="text-right font-mono" data-val="880.0">R$ 880,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="880.0">R$ 880,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="UESLEI">
+                    <td>UESLEI</td>
+                    <td class="text-center">18/06/2026</td>
+                    <td>UESLEI - CTE 8877 - AUTO POSTO PORTAL DE IBITIARA LTDA</td>
+                    <td class="text-right font-mono" data-val="2200.0">R$ 2.200,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="2200.0">R$ 2.200,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="UESLEI">
+                    <td>UESLEI</td>
+                    <td class="text-center">18/06/2026</td>
+                    <td>UESLEI - CTE 8878 - AUTO POSTO PORTAL DE IBITIARA LTDA</td>
+                    <td class="text-right font-mono" data-val="1100.0">R$ 1.100,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="1100.0">R$ 1.100,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #a855f715;">
+                    <td colspan="3" class="font-bold">Subtotal - UESLEI</td>
+                    <td class="text-right font-bold font-mono" data-val="9020.0">R$ 9.020,00</td>
+                    <td class="text-right font-bold font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-bold font-mono" data-val="9020.0">R$ 9.020,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+
+            <tr class="client-header-row" data-client="VAGNER" style="background-color: #0ea5e9; color: white;">
+                <td colspan="6" class="font-bold" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                    📦 Cliente: VAGNER — 2 viagem(ns)
+                </td>
+            </tr>
+            <tr class="client-subheader-row" data-client="VAGNER" style="background-color: #0ea5e9cc; color: white;">
+                <td colspan="3" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 500;"></td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Total</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor Recebido</td>
+                <td class="text-right" style="padding: 0.4rem 1rem; font-size: 0.75rem; font-weight: 600;">Valor em Aberto</td>
+            </tr>
+        
+
+                <tr class="data-row" data-client="VAGNER">
+                    <td>VAGNER</td>
+                    <td class="text-center">03/06/2026</td>
+                    <td>VAGNER - CTE 8752 - A P ALMEIDA SILVA DE IPIRA LTDA</td>
+                    <td class="text-right font-mono" data-val="360.0">R$ 360,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="360.0">R$ 360,00</td>
+                </tr>
+            
+
+                <tr class="data-row" data-client="VAGNER">
+                    <td>VAGNER</td>
+                    <td class="text-center">08/06/2026</td>
+                    <td>VAGNER - CTE 8791 - A P ALMEIDA SILVA DE IPIRA LTDA</td>
+                    <td class="text-right font-mono" data-val="960.0">R$ 960,00</td>
+                    <td class="text-right font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-mono" data-val="960.0">R$ 960,00</td>
+                </tr>
+            
+
+                <tr class="subtotal-row" style="background-color: #0ea5e915;">
+                    <td colspan="3" class="font-bold">Subtotal - VAGNER</td>
+                    <td class="text-right font-bold font-mono" data-val="1320.0">R$ 1.320,00</td>
+                    <td class="text-right font-bold font-mono" data-val="0.0">R$ 0,00</td>
+                    <td class="text-right font-bold font-mono" data-val="1320.0">R$ 1.320,00</td>
+                </tr>
+                <tr><td colspan="6" style="padding: 0.5rem; background: var(--bg-primary);"></td></tr>
+            
+                    <tfoot>
+                        <tr class="grand-total-row">
+                            <td colspan="3" class="font-bold">TOTAL GERAL</td>
+                            <td class="text-right font-bold font-mono" id="grand-total-original">R$ 287.546,95</td>
+                            <td class="text-right font-bold font-mono" id="grand-total-received">R$ 7.844,48</td>
+                            <td class="text-right font-bold font-mono" id="grand-total-open">R$ 279.702,47</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const PASSWORD_HASH = "ac58e7b9b938f1405b66c73f22a2831885ebcefa416811553bf0006a79f28154";
+
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function checkLogin() {
+            const input = document.getElementById('login-password').value;
+            const hash = await sha256(input);
+            if (hash === PASSWORD_HASH) {
+                document.getElementById('login-overlay').classList.add('hidden');
+                document.getElementById('dashboard-content').style.display = 'block';
+                sessionStorage.setItem('jpd_auth', '1');
+            } else {
+                document.getElementById('login-error').style.display = 'block';
+                document.getElementById('login-password').value = '';
+            }
+        }
+
+        if (sessionStorage.getItem('jpd_auth') === '1') {
+            document.getElementById('login-overlay').classList.add('hidden');
+            document.getElementById('dashboard-content').style.display = 'block';
+        }
+
+        const rawChartData = [{"client": "CLEUMA", "m": 54736.95, "o": 2000.0, "t": 52736.95}, {"client": "AUTOGRILL", "m": 41760.0, "o": 860.0, "t": 40900.0}, {"client": "ELSON", "m": 22400.0, "o": 0.0, "t": 22400.0}, {"client": "D.P. ITABERABA SERRA PRETA", "m": 22020.0, "o": 1370.0, "t": 20650.0}, {"client": "PIETRO", "m": 20160.0, "o": 0.0, "t": 20160.0}, {"client": "RODRIGO TORRES", "m": 20480.0, "o": 754.48, "t": 19725.52}, {"client": "D.P. ITABERABA", "m": 17520.0, "o": 0.0, "t": 17520.0}, {"client": "REDE SERVEBEM", "m": 15000.0, "o": 0.0, "t": 15000.0}, {"client": "LARCO", "m": 12750.0, "o": 0.0, "t": 12750.0}, {"client": "MARCILIO JOSE", "m": 11880.0, "o": 2050.0, "t": 9830.0}, {"client": "UESLEI", "m": 9020.0, "o": 0.0, "t": 9020.0}, {"client": "MARCOS TELES MARQUES DE LIMA", "m": 7680.0, "o": 0.0, "t": 7680.0}];
+
+        function formatBRL(val) {
+            return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        function parseRowDate(text) {
+            const parts = text.split(/[/\-]/);
+            if (parts.length === 3) {
+                const d = parseInt(parts[0], 10);
+                const m = parseInt(parts[1], 10) - 1;
+                const y = parseInt(parts[2], 10);
+                if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+                    return new Date(y, m, d);
+                }
+                const y2 = parseInt(parts[0], 10);
+                const m2 = parseInt(parts[1], 10) - 1;
+                const d2 = parseInt(parts[2], 10);
+                if (!isNaN(y2) && !isNaN(m2) && !isNaN(d2)) {
+                    return new Date(y2, m2, d2);
+                }
+            }
+            const fallback = new Date(text);
+            return isNaN(fallback.getTime()) ? null : fallback;
+        }
+
+        function applyAllFilters() {
+            const startStr = document.getElementById('date-start').value;
+            const endStr = document.getElementById('date-end').value;
+            const clientFilter = document.getElementById('client-filter').value;
+            const searchText = document.getElementById('search-input').value.toLowerCase().trim();
+
+            const startDate = startStr ? new Date(startStr + 'T00:00:00') : null;
+            const endDate = endStr ? new Date(endStr + 'T23:59:59') : null;
+
+            const rows = document.querySelectorAll('#receivables-table .data-row');
+            const headers = document.querySelectorAll('#receivables-table .client-header-row');
+            const subheaders = document.querySelectorAll('#receivables-table .client-subheader-row');
+            const subtotals = document.querySelectorAll('#receivables-table .subtotal-row');
+            const spacers = document.querySelectorAll('#receivables-table tr td[colspan="6"]');
+
+            let grandTotalOriginal = 0;
+            let grandTotalReceived = 0;
+            let grandTotalOpen = 0;
+            let visibleClientsSet = new Set();
+            let clientTripCounts = {};
+            let clientOpenValues = {};
+            let clientTotals = {};
+
+            rows.forEach(row => {
+                const rowClient = row.getAttribute('data-client');
+                const textDate = row.cells[1].innerText;
+                const textTrip = row.cells[2].innerText.toLowerCase();
+                const rowDate = parseRowDate(textDate);
+
+                let matchesPeriod = true;
+                if (rowDate) {
+                    if (startDate && rowDate < startDate) matchesPeriod = false;
+                    if (endDate && rowDate > endDate) matchesPeriod = false;
+                } else {
+                    matchesPeriod = false;
+                }
+
+                let matchesClient = !clientFilter || rowClient === clientFilter;
+                let matchesSearch = !searchText || textDate.toLowerCase().includes(searchText) || textTrip.includes(searchText);
+
+                const isVisible = matchesPeriod && matchesClient && matchesSearch;
+                row.style.display = isVisible ? '' : 'none';
+
+                if (isVisible) {
+                    visibleClientsSet.add(rowClient);
+                    var origVal = parseFloat(row.cells[3].getAttribute('data-val')) || 0;
+                    var recvVal = parseFloat(row.cells[4].getAttribute('data-val')) || 0;
+                    var openVal = parseFloat(row.cells[5].getAttribute('data-val')) || 0;
+                    grandTotalOriginal += origVal;
+                    grandTotalReceived += recvVal;
+                    grandTotalOpen += openVal;
+
+                    if (!clientTripCounts[rowClient]) {
+                        clientTripCounts[rowClient] = 0;
+                        clientOpenValues[rowClient] = 0;
+                    }
+                    clientTripCounts[rowClient]++;
+                    clientOpenValues[rowClient] += openVal;
+                    if (!clientTotals[rowClient]) clientTotals[rowClient] = { original: 0, received: 0, open: 0 };
+                    clientTotals[rowClient].original += origVal;
+                    clientTotals[rowClient].received += recvVal;
+                    clientTotals[rowClient].open += openVal;
+                }
+            });
+
+            // Hide/show headers based on visible rows
+            headers.forEach(h => {
+                const hClient = h.getAttribute('data-client');
+                const hasVisibleRows = [...rows].some(r => r.getAttribute('data-client') === hClient && r.style.display !== 'none');
+                h.style.display = hasVisibleRows ? '' : 'none';
+            });
+            subheaders.forEach(sh => {
+                const shClient = sh.getAttribute('data-client');
+                const hasVisibleRows = [...rows].some(r => r.getAttribute('data-client') === shClient && r.style.display !== 'none');
+                sh.style.display = hasVisibleRows ? '' : 'none';
+            });
+
+            subtotals.forEach(st => {
+                const stClient = st.querySelector('td').innerText.replace('Subtotal - ', '');
+                const hasVisibleRows = [...rows].some(r => r.getAttribute('data-client') === stClient && r.style.display !== 'none');
+                st.style.display = hasVisibleRows ? '' : 'none';
+                if (hasVisibleRows && clientTotals[stClient]) {
+                    st.cells[1].innerText = formatBRL(clientTotals[stClient].original);
+                    st.cells[2].innerText = formatBRL(clientTotals[stClient].received);
+                    st.cells[3].innerText = formatBRL(clientTotals[stClient].open);
+                }
+            });
+
+            spacers.forEach(s => {
+                const parentRow = s.parentElement;
+                const prevRow = parentRow.previousElementSibling;
+                parentRow.style.display = prevRow && prevRow.classList.contains('subtotal-row') && prevRow.style.display !== 'none' ? '' : 'none';
+            });
+
+            // Update KPIs
+            document.getElementById('kpi-clients').innerText = visibleClientsSet.size;
+            document.getElementById('kpi-original').innerText = formatBRL(grandTotalOpen);
+
+            // Update grand totals
+            document.getElementById('grand-total-original').innerText = formatBRL(grandTotalOriginal);
+            document.getElementById('grand-total-received').innerText = formatBRL(grandTotalReceived);
+            document.getElementById('grand-total-open').innerText = formatBRL(grandTotalOpen);
+
+            // Update Top 10 list
+            updateTop10(clientTripCounts, clientOpenValues);
+
+            // Update chart
+            renderChartWithFilter(clientOpenValues);
+        }
+
+        function updateTop10(tripCounts, openValues) {
+            const sorted = Object.entries(tripCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+
+            const listEl = document.getElementById('top10-list');
+            listEl.innerHTML = sorted.map(([client, trips], i) => {
+                const openVal = openValues[client] || 0;
+                return `<li class="top10-item" data-client="${client}">
+                    <span class="top10-rank">${i + 1}</span>
+                    <span class="top10-client">${client}</span>
+                    <span class="top10-trips">${trips} viagem(ns)</span>
+                    <span class="top10-separator"> - </span>
+                    <span class="top10-value">${formatBRL(openVal)}</span>
+                </li>`;
+            }).join('');
+        }
+
+        function renderChartWithFilter(clientOpenValues) {
+            const gridColor = '#334155';
+            const labelColor = '#94a3b8';
+
+            const sorted = Object.entries(clientOpenValues)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 12);
+
+            if (balanceChartInstance) balanceChartInstance.destroy();
+
+            const ctxBalance = document.getElementById('balanceChart').getContext('2d');
+            balanceChartInstance = new Chart(ctxBalance, {
+                type: 'bar',
+                data: {
+                    labels: sorted.map(d => d[0]),
+                    datasets: [{
+                        label: 'Valor em Aberto',
+                        data: sorted.map(d => d[1]),
+                        backgroundColor: '#fbbf24',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Em Aberto: ' + formatBRL(context.parsed.x);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: gridColor },
+                            ticks: {
+                                color: labelColor,
+                                font: { family: 'Inter', size: 10 },
+                                callback: function(value) { return 'R$ ' + value.toLocaleString('pt-BR'); }
+                            }
+                        },
+                        y: {
+                            grid: { color: 'transparent' },
+                            ticks: {
+                                color: labelColor,
+                                font: { family: 'Inter', size: 12 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function clearAllFilters() {
+            document.getElementById('client-filter').value = '';
+            document.getElementById('search-input').value = '';
+            document.getElementById('date-start').value = '2026-03-31';
+            document.getElementById('date-end').value = '2026-06-18';
+            applyAllFilters();
+        }
+
+        let balanceChartInstance = null;
+
+        window.addEventListener('load', () => {
+            applyAllFilters();
+        });
+    </script>
+</body>
+</html>
